@@ -24,6 +24,7 @@ class RuntimeTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.temp = tempfile.TemporaryDirectory(prefix="pickle-runtime-test-")
+        cls.addClassCleanup(cls.temp.cleanup)
         cls.base = Path(cls.temp.name)
         cls.runtime = cls.base / "runtime"
         cls.workspace = cls.base / "workspace"
@@ -45,13 +46,15 @@ class RuntimeTest(unittest.TestCase):
             "timeout": task("import time,subprocess,sys; subprocess.Popen([sys.executable,'-c',\"import time; time.sleep(2); open('orphan.txt','w').write('bad')\"]); time.sleep(20)", .3)}}
         (cls.runtime / "config.json").write_text(json.dumps(config))
         cls.log = open(cls.runtime / "process.log", "ab")
+        cls.addClassCleanup(cls.log.close)
         cls.start()
 
     @classmethod
     def start(cls):
         env = dict(os.environ, PROBE_SECRET="test-never-forwarded")
         cls.proc = subprocess.Popen([sys.executable, str(Path(__file__).with_name("agent.py")), "--runtime", str(cls.runtime)], env=env, stdout=cls.log, stderr=cls.log, start_new_session=True)
-        deadline = time.monotonic() + 6
+        cls.addClassCleanup(cls.stop)
+        deadline = time.monotonic() + 30
         while time.monotonic() < deadline:
             try:
                 if cls.call("GET", "/health")[0] == 200:
@@ -61,7 +64,8 @@ class RuntimeTest(unittest.TestCase):
             if cls.proc.poll() is not None:
                 raise AssertionError((cls.runtime / "process.log").read_text())
             time.sleep(.05)
-        raise AssertionError("test runner did not start")
+        raise AssertionError("test runner did not start within 30 seconds; process log:\n" +
+                             (cls.runtime / "process.log").read_text()[-8000:])
 
     @classmethod
     def stop(cls, force=False):

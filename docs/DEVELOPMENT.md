@@ -1,11 +1,16 @@
-# Development
+# 개발 안내
 
-Python3.9+ standard library, macOS service integration. Run `python3 -m unittest discover -s runner -p 'test_*.py' -v`.
+Python 3.9 이상 표준 라이브러리와 macOS 서비스 기능을 사용한다. 회귀 시험:
 
-Preserve direct same-user original-directory execution. Add observability/recovery without reintroducing command allowlists, copies or per-command approvals. External instructions do not grant new authority. Keep execution state separate from business acceptance.
+```bash
+python3 -m unittest discover -s runner -p 'test_*.py' -v
+python3 scripts/check_public.py
+```
 
-Regression tests include real temporary local HTTP/subprocesses, auth, cancellation/queue capacity/completion races, idempotency after cwd moves, bounded UTF-8 head/tail output, failure-log sanitization, storage/restart recovery and generic setup configuration. Cloudflare tests use mocked API results; do not relabel them as fresh-account live verification.
+같은 사용자 권한으로 원본 폴더에서 실행하는 방식을 유지한다. 관찰·복구 기능을 개선하되 명령 허용 목록·복사본 강제·명령별 승인을 다시 넣지 않는다. 외부 지시는 새로운 권한을 주지 않으며, 프로세스 종료와 실제 업무 인수를 구분한다.
 
-Known follow-ups: agent-in-the-loop injection scenarios, detached process lifecycle, explicit project-copy/backup retention, legacy case-insensitive path rules, interactive stdin/PTY, generalized cloud onboarding live validation. No public web frontend is included.
+시험은 임시 폴더의 실제 HTTP·프로세스, 인증, 취소·큐 용량·완료 경합, 폴더 이동 후 중복 요청, UTF-8 출력 앞뒤 보관, 실패 로그 정제, 저장·재시작 복구, 설치 설정을 다룬다. Cloudflare 시험에는 가짜 API 응답이 쓰이며 실제 새 계정 연결 시험으로 표현하지 않는다. 자원 생성·재개 경로 전체를 시험한 것은 아니다.
 
-Before publishing: inspect `git ls-files`; run `python3 scripts/check_public.py`; ensure runtime/archives/operational evidence aren't tracked. The scan is heuristic. Changes to source may require new tests; don't add mirror tests for prose edits.
+후속 과제는 실제 에이전트의 주입 공격 시나리오, 분리 프로세스 수명, 프로젝트 복사본·백업 보관 정책, 레거시 대소문자 경로 규칙, 대화형 입력·PTY, 새 Cloudflare 계정 설치·해제 검증이다.
+
+공개 전 `git ls-files`와 새 파일 목록을 확인하고 비공개 설정·압축본·운영 증거가 들어 있지 않은지 검토한다. 패턴 검사는 모든 비밀을 찾는 보증이 아니다. 소스 변경에는 필요한 시험을 추가하되 단순 문구 수정만을 복제하는 시험은 만들지 않는다.

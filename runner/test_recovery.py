@@ -1,4 +1,6 @@
 """Regression checks for reviewed operational failures; isolated real processes/DB."""
+import contextlib
+import io
 import hashlib
 import json
 import os
@@ -177,7 +179,8 @@ class RecoveryTest(unittest.TestCase):
                 patch.object(setup, "api", return_value=remote) as api, \
                 patch.object(setup, "preserve_app", return_value=True) as preserve, \
                 patch.object(setup, "verify_policy", return_value=True):
-            setup.renew()
+            with contextlib.redirect_stdout(io.StringIO()):
+                setup.renew()
         mutations = [call for call in api.call_args_list if len(call.args) > 1]
         self.assertEqual(len(mutations), 1)
         self.assertEqual(mutations[0].args, ("/accounts/test-only/access/service_tokens/owned-id", "PUT", {"name": "owned-name", "duration": "720h"}))

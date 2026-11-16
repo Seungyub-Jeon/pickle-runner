@@ -1,14 +1,34 @@
-# Public preparation status
+# 공개 준비와 검증 기록
 
-Prepared 2026-11-16, code version0.3.3.
+2026-11-16 확인, 코드 버전 v0.3.3. 개발자용 초기 배포판이다.
 
-- 64 local regression tests passed on macOS, including temporary real HTTP/subprocess tests and mocked onboarding tests.
-- Tracked-file heuristic checks passed. Operational histories, archives, production settings, tokens, personal paths/domains and bundled binaries are excluded from this repository.
-- A fresh local init enables terminal.run and preserves existing settings. Public service labels are io.picklerunner.agent/tunnel; an occupied local port prevents installation from confusing another service with this checkout.
-- Cloudflare tests cover local settings, setup orchestration with a mocked Setup, DNS preservation/collision, service dispatch and token renewal. Provisioning API creation/resume paths are not fully covered. A fresh-account live provisioning cycle has not yet been performed. CI execution on GitHub is also pending first push.
-- Claude Code, Codex and AGY each launched successfully via the public terminal execution path (`--version`); this does not verify every model or a remote Pickle task.
-- License selection is pending. No third-party binaries are bundled.
+## 확인한 범위
 
-This is an early developer release. Source publication, installation success, external authentication checks, agent prompt-injection resistance and business acceptance are separate claims.
+- macOS 로컬 회귀 64개 통과. 임시 HTTP·프로세스 실행과 설치 모의시험을 포함한다.
+- 공개 실행기를 설치한 적 없는 다른 맥(macOS, Python 3.9.6)에서 status → init → install → health → terminal.run 파일 생성·읽기 → 회귀 64개 → uninstall을 실제 수행했다. 서비스·포트·plist 제거까지 확인했다. 기록은 비공개로 보관한다. 공장 초기화된 맥을 시험한 것은 아니다.
+- Cloudflare 시험은 로컬 설정, 가짜 Setup을 사용한 연결 순서, DNS 보존·충돌, 서비스 분기와 토큰 갱신을 다룬다. 자원 생성·재개 전체와 새 Cloudflare 계정 연결·해제는 아직 실검증하지 않았다.
+- Claude Code·Codex·AGY를 공개 terminal.run 경로에서 각각 --version으로 기동했다. 모든 모델의 응답이나 피클을 통한 실제 업무 완료를 뜻하지 않는다.
+- 추적 파일의 민감 패턴 검사와 기존 커밋 이력 검사를 수행했다. 운영 기록·원본 감사 문서·개인 설정·DB·토큰·접속 암호문·바이너리를 공개 파일에서 제외했다. 검사는 모든 비밀값 부재의 보증이 아니다.
+- Claude Fable 5.2와 AGY 기본 모델의 소스 스냅샷 검토를 받았다. 키 크기 안내, 실패 단계 표시, 재시도 안내, 터널 재기동 분기와 운영 문서를 보완했다. 정적 검토는 실제 설치 인수나 이후 모든 수정의 승인과 구분한다.
 
-Independent source-snapshot reviews were completed with Claude Fable 5.2 and AGY's default model. Relevant findings led to RSA4096 transfer guidance, safe connection-stage errors, partial-setup retry guidance, tunnel restart dispatch, lifecycle documentation and tests. Review comments were checked against source; these static reviews are not live installation acceptance or approval of every subsequent change.
+새 설정은 terminal.run을 활성화하고 기존 설정은 보존한다. 공개판 서비스 라벨은 io.picklerunner.agent/tunnel이다. 다른 체크아웃의 같은 라벨이나 사용 중인 포트를 덮어쓰지 않는다.
+
+## GitHub 자동 시험
+
+첫 공개 커밋 b33d2be의 [자동 시험](https://github.com/Seungyub-Jeon/pickle-runner/actions/runs/43871378139)은 Python 3.9에서 통합시험 서버를 6초 안에 시작하지 못해 실패했고, 3.11 작업은 매트릭스 연동으로 취소됐다. 로컬·다른 맥의 64개 통과와 구분한다. 기동 지연 가능성에 대응해 시작 대기를 30초로 늘리고 실패 로그·정리 절차를 보강했으며, 두 버전을 독립적으로 완료하도록 수정했다. 수정본의 GitHub 실행은 아직 하지 않았다. CI 원인이 확정되거나 해결됐다고 보고하지 않는다.
+
+## 피클 약관 확인
+
+2026-11-16에 공식 사이트를 확인했다. 기본 페이지는 시행일 2026-12-08인 판본을 보여 주므로, 현재 날짜에 해당하는 [2026-10-24 시행 약관](https://pickle.com/ko/terms-of-service/2026-10-24)을 따로 확인했다.
+
+제4·5조는 사용자 지시에 따른 제3자 서비스 이용과 연결 계정의 권한·책임을 다룬다. 제8조는 공식 앱 외 접근, 수집·공격·보안 및 사용 한도 우회 등을 제한한다. 제10조는 이름·로고 등 회사 지식재산을 다룬다. [해당 약관](https://pickle.com/ko/terms-of-service/2026-10-24#acceptable-use)
+
+이 실행기는 피클의 비공개 API에 로그인하거나 제한을 우회하는 클라이언트가 아니라 피클 측 작업 환경에서 호출하는 사용자 소유 서버다. 다만 공개 약관에서 이 구체적인 연결 방식을 명시적으로 허용하는 문구나 회사의 별도 승인을 확인하지 못했다. 따라서 약관 적합성·공식 지원이 확인됐다고 표시하지 않는다. 서비스 제공자의 해석은 아직 미확인이다.
+
+## 라이선스와 명칭
+
+[MIT License](../LICENSE). 저작권자는 `Copyright (c) 2026 전승엽`이다. 타사 바이너리를 배포하지 않는다. Pickle, Inc.와 관계가 없으며 그 회사가 제작하거나 보증한 도구가 아니다. Pickle 상표의 권리는 해당 회사에 있다.
+
+## 남은 검증
+
+새 Cloudflare 계정에서의 전체 연결·해제, 실제 피클·CLI별 업무 왕복, 웹·첨부 등 추가 간접 지시 시나리오가 남아 있다. 소스 공개, 설치 성공, 외부 인증, 지시 공격 대응과 업무 인수는 각각 별도로 확인한다.

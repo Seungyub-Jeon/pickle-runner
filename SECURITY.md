@@ -1,9 +1,9 @@
-# Security model and reporting
+# 보안 모델과 취약점 제보
 
-This is a trusted single-owner remote shell, not an untrusted-code sandbox. A valid remote caller can execute with the Mac login user's permissions, including files and installed CLIs. Protect both credential layers. The server binds to loopback; don't publish the origin directly.
+신뢰하는 단일 소유자가 사용하는 원격 셸이며, 비신뢰 코드를 격리하는 샌드박스가 아니다. 인증된 원격 호출자는 맥 로그인 사용자의 권한으로 파일과 설치된 CLI를 사용할 수 있다. 두 인증 계층의 자격증명을 보호한다. 서버는 루프백에 바인딩하며 원본 서버를 인터넷에 직접 노출하지 않는다.
 
-The program cannot prove whether an agent's request originated from the owner's task or an injected email. Agent source rules and scenario evaluations are necessary; XML delimiters or client-supplied authorization metadata do not establish trusted origin.
+실행기는 요청이 소유자의 업무에서 나온 것인지, 주입된 이메일 지시에서 나온 것인지 증명할 수 없다. 에이전트의 출처 규칙과 실제 시나리오 평가가 필요하다. XML 태그나 호출자가 붙인 승인 정보는 신뢰할 수 있는 출처 증명이 아니다.
 
-Cancellation targets the process group. A detached session can outlive it, and a signalling warning must not be reported as complete cleanup. Output is not guaranteed to be secret-free. Private runtime files and encrypted connection archives must never be committed. Generalized Cloudflare onboarding still requires fresh-account live validation.
+취소는 프로세스 그룹을 대상으로 한다. 분리된 세션은 남을 수 있고, 신호 전달 경고를 정리 완료로 보고하면 안 된다. 출력에는 비밀값이 포함될 수 있다. 비공개 실행 파일·설정·암호화 접속 묶음은 커밋하지 않는다. 공개용 Cloudflare 설치기의 새 계정 실검증은 아직 필요하다.
 
-For a suspected vulnerability, use the repository's private vulnerability reporting channel if enabled. If none is available, open a minimal issue asking the maintainer for a private channel; do not include active credentials, private logs, or exploit details that disclose someone's host. There is no promised response SLA for this early release.
+취약점이 의심되면 저장소의 비공개 취약점 제보 기능이 활성화돼 있는 경우 그 경로를 사용한다. 없다면 공개 이슈에 비공개 연락 경로만 요청한다. 활성 자격증명·개인 로그·타인의 호스트를 드러내는 공격 정보는 공개 이슈에 넣지 않는다. 초기 배포판이며 응답 기한을 보장하지 않는다.
