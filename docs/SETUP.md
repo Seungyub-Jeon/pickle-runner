@@ -4,9 +4,8 @@
 
 GitHub distributes source and updates. The Mac runs the shell, installed CLIs, local HTTP server and `cloudflared`. Cloudflare routes HTTPS requests and checks Access service credentials. The remote agent additionally supplies the runner bearer token. The Mac must be awake and online.
 
-Vercel can host a future documentation site or dashboard. It does not replace a process executing commands on the user's Mac; Vercel Functions run in Vercel's runtime and have duration limits. A browser dashboard would need its own authentication/backend design: never embed these machine credentials in frontend JavaScript.
 
-Sources: [Cloudflare Tunnel](https://developers.cloudflare.com/tunnel/), [Vercel Functions](https://vercel.com/docs/functions), [Function limits](https://vercel.com/docs/functions/limitations).
+Reference: [Cloudflare Tunnel](https://developers.cloudflare.com/tunnel/).
 
 ## 1. Local installation
 

@@ -4,7 +4,7 @@ A self-hosted macOS command runner for a trusted remote AI agent.
 
 **Early developer release, v0.3.3.** Run commands and installed CLIs in original project directories, as the macOS login user. There is no command allowlist, mandatory copy, or per-command approval. Credentials grant that user's shell authority; this is not a multi-tenant sandbox.
 
-The code lives on GitHub. The process and files stay on your Mac. Cloudflare Tunnel and Access provide the remote connection. No Vercel deployment or hosted Pickle service is required.
+The code lives on GitHub. The process and files stay on your Mac. Cloudflare Tunnel and Access provide the remote connection.
 
 ```text
 Remote agent → HTTPS + Cloudflare Access → Cloudflare Tunnel
