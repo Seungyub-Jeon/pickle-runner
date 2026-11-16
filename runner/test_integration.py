@@ -226,7 +226,10 @@ class RuntimeTest(unittest.TestCase):
         self.assertEqual(self.call("POST", "/v1/jobs", raw=b'{"args": NaN}')[0], 400)
         self.assertEqual(self.call("POST", "/v1/jobs", raw=b'[]')[0], 400)
         self.assertEqual(self.call("POST", "/v1/jobs", valid, extra={"Content-Type": "text/plain"})[0], 415)
-        self.assertEqual(self.call("POST", "/v1/jobs", raw=b"a" * 170000)[0], 413)
+        # Reject the declared size before reading any body. Sending the whole
+        # oversized payload races the server closing its HTTP/1.0 connection.
+        self.assertEqual(self.call("POST", "/v1/jobs", raw=b"",
+                                   extra={"Content-Length": "170000"})[0], 413)
 
     def test_03_file_lifecycle_and_conflict(self):
         job = self.finish(self.submit("create-note", "files.write", {"path": "note.md", "content": "첫 기록\n", "expected_sha256": None}))
