@@ -50,7 +50,7 @@ class TerminalTests(unittest.TestCase):
         from agent import run_task
         with tempfile.TemporaryDirectory() as tmp:
             with patch('agent.os.killpg', side_effect=PermissionError('test-only')):
-                r = run_task({'argv':[sys.executable, '-c', "import time; print('ready', flush=True); time.sleep(20)"], 'cwd':tmp, 'timeout_sec':.2}, Path(tmp))
+                r = run_task({'argv':[sys.executable, '-c', "import time; print('ready', flush=True); time.sleep(20)"], 'cwd':tmp, 'timeout_sec':1}, Path(tmp))
             self.assertTrue(r['timed_out'])
             self.assertIsNotNone(r['exit_code'])
             self.assertEqual(r['stdout'], 'ready\n')

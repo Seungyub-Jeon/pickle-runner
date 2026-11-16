@@ -151,6 +151,26 @@ class ObservabilityTest(unittest.TestCase):
             self.assertEqual(self.bridge.db.execute("SELECT count(*) FROM jobs").fetchone()[0], 0)
         self.assertTrue(self.bridge.queue.empty())
 
+    def test_http_start_and_health_without_reverse_dns(self):
+        import http.client
+        with patch("socket.getfqdn", side_effect=AssertionError("DNS must not block local startup")):
+            server = agent.Server(("127.0.0.1", 0), self.bridge)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            connection = http.client.HTTPConnection(*server.server_address, timeout=2)
+            try:
+                connection.request("GET", "/health", headers={"Authorization": "Bearer " + self.bridge.token})
+                response = connection.getresponse()
+                self.assertEqual(response.status, 200)
+                self.assertTrue(json.loads(response.read()))
+                self.assertEqual(server.server_name, "127.0.0.1")
+                self.assertEqual(server.server_port, server.server_address[1])
+            finally:
+                connection.close()
+                server.shutdown()
+                thread.join(2)
+                server.server_close()
+
     def test_http_routes_authentication_and_strict_cursor_validation(self):
         server = agent.Server(("127.0.0.1", 0), self.bridge)
         thread = threading.Thread(target=server.serve_forever, daemon=True)

@@ -16,6 +16,7 @@ import re
 import selectors
 import signal
 import sqlite3
+from socketserver import TCPServer
 import stat
 import subprocess
 import threading
@@ -772,6 +773,12 @@ class Server(ThreadingHTTPServer):
         self.bridge = bridge
         self.slots = threading.BoundedSemaphore(16)
         super().__init__(address, Handler)
+
+    def server_bind(self):
+        # HTTPServer resolves a name for display; this loopback API needs no DNS.
+        # A slow resolver must not prevent the listener from starting.
+        TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address[:2]
 
     def process_request(self, request, client_address):
         if not self.slots.acquire(blocking=False):
