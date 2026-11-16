@@ -150,6 +150,10 @@ class Setup:
         if not binary.is_file() or not (STORE / "tunnel-token").is_file():
             raise RuntimeError("Verified cloudflared binary or tunnel credential missing")
         argv = [str(binary), "--no-autoupdate", "tunnel", "--protocol", "http2", "--metrics", "127.0.0.1:0", "run", "--token-file", str(STORE / "tunnel-token")]
+        loaded = subprocess.run(["/bin/launchctl", "print", domain + "/" + LABEL],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+        if loaded and not PLIST.exists():
+            raise RuntimeError("Loaded tunnel service has no ownership record")
         if PLIST.exists():
             previous = plistlib.loads(PLIST.read_bytes())
             if previous.get("ProgramArguments") != argv:
@@ -159,8 +163,10 @@ class Setup:
             "StandardOutPath": str(STORE / "tunnel.out.log"), "StandardErrorPath": str(STORE / "tunnel.err.log")}
         PLIST.write_bytes(plistlib.dumps(props))
         os.chmod(PLIST, 0o600)
-        self.service(stop=True)
-        subprocess.run(["/bin/launchctl", "bootstrap", domain, str(PLIST)], check=True)
+        if loaded:
+            subprocess.run(["/bin/launchctl", "kickstart", "-k", domain + "/" + LABEL], check=True)
+        else:
+            subprocess.run(["/bin/launchctl", "bootstrap", domain, str(PLIST)], check=True)
         print("독립 사용자 터널 서비스 시작 완료", flush=True)
 
     def publish(self):

@@ -26,7 +26,7 @@ python3 runner/setup.py cloudflare --zone example.com --hostname runner.example.
   --preserve-host app.example.com
 ```
 
-`--preserve-host` is optional/repeatable. It snapshots those existing hosts and refuses to proceed if their records change; it never rewrites them. The target hostname must not be a preserved host. Once provisioning has started, changing hostname/zone in-place is refused so resources from different setups are not mixed. The chosen host is checked for ownership before DNS publication.
+`--preserve-host` is optional/repeatable. It snapshots those existing hosts and refuses to proceed if their records change; it never rewrites them. The target hostname must not be a preserved host. Once the management token has been validated and plan.json saved, changing hostname/zone in-place is refused so resources from different setups are not mixed. The chosen host is checked for ownership before DNS publication.
 
 ## 3. Credentials
 
@@ -55,3 +55,9 @@ The generalized installer is covered by local/mock tests; validate it in your ow
 The generated .runtime/pickle-runner/client-remote.json contains credentials and must remain private (0600). Transfer it only using an explicitly chosen private mechanism, such as recipient-public-key encryption. client.py supports RSA-OAEP(SHA256) encrypted configuration with `--encrypted-config` and `--private-key`. No automatic upload/email is performed.
 
 Ask the remote agent to read runner/PICKLE.md, query capabilities and perform one bounded test task in a disposable folder. Confirm results on the Mac. A successful API check does not establish resistance to all indirect prompt injection.
+
+## Troubleshooting a partial setup
+
+`setup.py connect` reports a safe `stage` identifier. `local_health` means check `manage.py install` and local health; `load_checkpoint` means check the saved plan and hidden management-token input; `provision` means check account permissions and existing resource names; `start_tunnel`/`tunnel_health` means inspect cloudflared and the owned LaunchAgent; `publish_dns` means inspect the selected hostname; `remote_auth` includes the available HTTP status/pass results for each authentication combination. DNS/Access propagation may take longer than the retry window. Retry the same configuration after resolving the failing stage; its management token is retained until verification and metadata succeed.
+
+If a hostname was mistyped **before any connect/provision command was attempted**, remove only `.runtime/cloudflare-setup/plan.json` and `api-token`, rerun `setup.py cloudflare`, and enter the token again. If provisioning was attempted, inspect the remote resources first even if resources.json is absent: creation can succeed before its receipt is saved. Do not repoint that checkpoint to another hostname.

@@ -54,53 +54,77 @@ def status():
         result['next'] = 'python3 runner/setup.py init'
     elif not result['cloudflare_configured']:
         result['next'] = 'Choose local-only use, or run setup.py cloudflare --zone YOUR_DOMAIN --hostname runner.YOUR_DOMAIN'
-    elif not result['setup_token_present'] and not result['remote_config_present']:
-        result['next'] = 'python3 runner/cloudflare_token.py prompt'
-    elif not result['remote_config_present']:
-        result['next'] = 'Install cloudflared, start the local runner, then python3 runner/setup.py connect'
-    else:
+    elif result['setup_token_present']:
+        result['next'] = 'Install cloudflared, run python3 runner/manage.py install, then python3 runner/setup.py connect'
+    elif result['remote_config_present']:
         result['next'] = 'python3 runner/check_remote.py --config .runtime/pickle-runner/client-remote.json'
+    else:
+        result['next'] = 'python3 runner/cloudflare_token.py prompt'
     return result
 
 
-def connect():
-    if sys.platform != 'darwin' or not shutil.which('cloudflared'):
-        raise ValueError('macOS and an installed cloudflared are required')
-    from client import request
-    local = json.loads((manage.RUNTIME/'client-local.json').read_text())
-    code, health = request(local, 'GET', '/health')
-    if code != 200 or health.get('service') != 'pickle-runner':
-        raise ValueError('Start and verify the local runner before configuring Cloudflare')
-    from cloudflare_connect import Setup
-    setup = Setup()
-    setup.provision()
-    setup.service()
-    for unused in range(30):
-        state = setup.api(setup.account + '/cfd_tunnel/' + setup.state['tunnel_id'])
-        if state.get('status') == 'healthy':
-            break
-        time.sleep(1)
-    else:
-        raise ValueError('Tunnel is not healthy; DNS has not been published')
-    setup.publish()
-    from check_remote import check
-    remote = json.loads((manage.RUNTIME/'client-remote.json').read_text())
-    verified = None
-    for unused in range(12):
-        try:
-            verified = check(remote)
-            if verified['passed']:
-                break
-        except (OSError, ValueError):
-            pass
-        time.sleep(1)
-    if not verified or not verified['passed']:
-        raise ValueError('External authentication verification incomplete; inspect access policy and DNS')
-    setup.credential_metadata()
-    (STORE/'api-token').unlink()
-    return {'connected':True, 'checks':verified, 'setup_token_local_copy_removed':True,
-            'note':'Revoking the issued management API token is a separate Cloudflare operation. Transfer client configuration privately.'}
+class ConnectionFailure(ValueError):
+    def __init__(self, stage, verified=None):
+        super().__init__("Connection incomplete at " + stage)
+        self.stage = stage
+        self.checks = {}
+        for name in ("no_credentials", "agent_only", "access_only", "both"):
+            item = (verified or {}).get("checks", {}).get(name, {})
+            if type(item.get("status")) is int and type(item.get("passed")) is bool:
+                self.checks[name] = {"status": item["status"], "passed": item["passed"]}
 
+
+def connect():
+    stage, verified = "prerequisites", None
+    try:
+        stage = 'prerequisites'
+        if sys.platform != 'darwin' or not shutil.which('cloudflared'):
+            raise ValueError('macOS and an installed cloudflared are required')
+        stage = 'local_health'
+        from client import request
+        local = json.loads((manage.RUNTIME/'client-local.json').read_text())
+        code, health = request(local, 'GET', '/health')
+        if code != 200 or health.get('service') != 'pickle-runner':
+            raise ValueError('Start and verify the local runner before configuring Cloudflare')
+        stage = 'load_checkpoint'
+        from cloudflare_connect import Setup
+        setup = Setup()
+        stage = 'provision'
+        setup.provision()
+        stage = 'start_tunnel'
+        setup.service()
+        stage = 'tunnel_health'
+        for unused in range(30):
+            state = setup.api(setup.account + '/cfd_tunnel/' + setup.state['tunnel_id'])
+            if state.get('status') == 'healthy':
+                break
+            time.sleep(1)
+        else:
+            raise ValueError('Tunnel is not healthy; DNS has not been published')
+        stage = 'publish_dns'
+        setup.publish()
+        stage = 'remote_auth'
+        from check_remote import check
+        remote = json.loads((manage.RUNTIME/'client-remote.json').read_text())
+        verified = None
+        for unused in range(30):
+            try:
+                verified = check(remote)
+                if verified['passed']:
+                    break
+            except (OSError, ValueError):
+                pass
+            time.sleep(2)
+        if not verified or not verified['passed']:
+            raise ValueError('External authentication verification incomplete; inspect access policy and DNS')
+        stage = 'credential_metadata'
+        setup.credential_metadata()
+        stage = 'remove_setup_token'
+        (STORE/'api-token').unlink()
+        return {'connected':True, 'checks':verified, 'setup_token_local_copy_removed':True,
+                'note':'Revoking the issued management API token is a separate Cloudflare operation. Transfer client configuration privately.'}
+    except (OSError, ValueError, RuntimeError, KeyError, subprocess.SubprocessError):
+        raise ConnectionFailure(stage, verified) from None
 
 def main():
     os.umask(0o077)
@@ -126,6 +150,10 @@ def main():
         else:
             result = status()
         print(json.dumps(result, ensure_ascii=False, indent=2))
+    except ConnectionFailure as exc:
+        print(json.dumps({'error':'setup_incomplete', 'stage':exc.stage, 'checks':exc.checks,
+                          'next':'Inspect this stage in docs/SETUP.md, then retry python3 runner/setup.py connect'}))
+        raise SystemExit(1)
     except (OSError, ValueError, RuntimeError, KeyError, subprocess.SubprocessError):
         # Provider exceptions and settings may contain credentials: no raw traceback.
         print(json.dumps({'error':'setup_incomplete','next':'Check local service, setup state and docs/SETUP.md; credentials were not printed'}))

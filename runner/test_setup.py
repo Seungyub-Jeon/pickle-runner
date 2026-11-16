@@ -70,6 +70,14 @@ class SetupTest(unittest.TestCase):
             with self.assertRaises(RuntimeError):obj.preserve_app()
             self.assertTrue(all(len(c.args)==1 for c in api.call_args_list))
 
+    def test_partial_provisioning_status_resumes_connect(self):
+        setup.configure('example.net', 'runner.example.net')
+        (self.store/'api-token').write_text('fake-management-token')
+        (self.runtime/'client-remote.json').write_text('{}')
+        self.assertIn('setup.py connect', setup.status()['next'])
+        (self.store/'api-token').unlink()
+        self.assertIn('check_remote.py', setup.status()['next'])
+
     def test_install_refuses_occupied_port_before_writing_service(self):
         import socket
         from types import SimpleNamespace
@@ -107,3 +115,42 @@ class SetupTest(unittest.TestCase):
             obj.api.return_value={'status':'healthy'}
             with self.assertRaises(ValueError):setup.connect()
             self.assertTrue(token.exists())
+
+    def test_connect_failure_reports_stage_without_exception_secret(self):
+        import client
+        with patch.object(setup.sys, 'platform', 'darwin'), patch.object(setup.shutil, 'which', return_value='/fake/cloudflared'), patch.object(client, 'request', side_effect=OSError('private-test-value')):
+            with self.assertRaises(setup.ConnectionFailure) as caught:
+                setup.connect()
+        self.assertEqual(caught.exception.stage, 'local_health')
+        self.assertNotIn('private-test-value', str(caught.exception))
+        output = io.StringIO()
+        with patch.object(setup.sys, 'argv', ['setup.py', 'connect']), patch.object(setup, 'connect', side_effect=caught.exception), contextlib.redirect_stdout(output), self.assertRaises(SystemExit):
+            setup.main()
+        self.assertEqual(json.loads(output.getvalue())['stage'], 'local_health')
+        self.assertNotIn('private-test-value', output.getvalue())
+
+    def test_tunnel_service_restarts_owned_loaded_label_without_bootout(self):
+        from types import SimpleNamespace
+        obj = object.__new__(cloudflare_connect.Setup)
+        self.store.mkdir(parents=True)
+        (self.store/'tunnel-token').write_text('fake')
+        binary = self.root/'cloudflared';binary.write_text('fake')
+        plist = self.root/'tunnel.plist'
+        with patch.object(cloudflare_connect,'STORE',self.store), patch.object(cloudflare_connect,'PLIST',plist), patch.object(cloudflare_connect,'ROOT',self.root), patch.object(cloudflare_connect.shutil,'which',return_value=str(binary)), patch.object(obj,'verify_policy'), patch.object(cloudflare_connect.subprocess,'run') as proc:
+            proc.return_value=SimpleNamespace(returncode=1)
+            obj.service()
+            self.assertEqual(proc.call_args.args[0][1], 'bootstrap')
+            proc.reset_mock();proc.return_value=SimpleNamespace(returncode=0)
+            obj.service()
+            self.assertEqual(proc.call_args.args[0][1], 'kickstart')
+            self.assertFalse(any('bootout' in call.args[0] for call in proc.call_args_list))
+            plist.unlink();proc.reset_mock()
+            with self.assertRaises(RuntimeError):obj.service()
+            self.assertEqual(proc.call_count, 1)
+
+    def test_publish_refuses_unowned_dns_without_mutation(self):
+        obj = object.__new__(cloudflare_connect.Setup)
+        obj.account='/accounts/fake';obj.zone='/zones/fake';obj.state={'tunnel_id':'owned'}
+        with patch.object(obj,'verify_policy'), patch.object(obj,'preserve_app'), patch.object(obj,'api',side_effect=[{'status':'healthy'}, [{'id':'other','content':'owned.cfargotunnel.com'}]]) as api:
+            with self.assertRaises(RuntimeError):obj.publish()
+            self.assertTrue(all(len(call.args)==1 for call in api.call_args_list))

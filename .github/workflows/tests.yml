@@ -5,10 +5,14 @@ permissions:
 jobs:
   tests:
     runs-on: macos-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python: ['3.9', '3.11']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python }}
       - run: python3 -m unittest discover -s runner -p 'test_*.py' -v
       - run: python3 scripts/check_public.py
