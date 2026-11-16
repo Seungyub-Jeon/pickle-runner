@@ -38,6 +38,12 @@ python3 runner/check_remote.py --config .runtime/pickle-runner/client-remote.jso
 
 관리 API 토큰을 숨김 입력한 뒤 `python3 runner/cloudflare_connect.py renew`로 기간을 갱신한다. 외부 인증을 확인하고 `python3 runner/credentials.py forget-setup-token`으로 로컬 관리 토큰을 지운다. 기간 갱신은 유출된 비밀값 교체가 아니다.
 
+### 갱신 일정 운영
+
+만료 7일 전에 갱신 알림을 두고, 기간 연장 후 반환된 새 만료 시각을 확인한다. 기존 서비스 토큰의 기간만 연장했다면 Client Secret은 유지하므로 연결 에이전트에 설정을 다시 전달할 필요가 없다. 새 토큰 발급이나 비밀값 교체는 별도 절차다.
+
+갱신 뒤 외부 인증 네 조합과 연결 에이전트의 실제 접속을 확인한다. 작업을 마치면 실패 여부와 관계없이 로컬 관리 API 토큰을 제거하고 `credentials.py status`에서 저장 여부를 확인한다. 재시도 때는 숨김 입력을 다시 받는다. 다음 알림은 새 만료일을 기준으로 등록한다. 알림 등록은 자동 갱신을 뜻하지 않는다.
+
 유출이 의심되면 다음 절차를 별도로 수행한다.
 
 1. 긴급 중지 후 Cloudflare Zero Trust의 서비스 토큰 관리 화면에서 이 설치의 Access 토큰을 폐기한다. 전용 자원 ID는 비공개 resources.json을 따른다.
