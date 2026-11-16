@@ -1,0 +1,9 @@
+{
+  "request_id": "note-create-001",
+  "action": "files.write",
+  "args": {
+    "path": "note.md",
+    "content": "# 피클 작업 기록\n\n맥에서 저장한 첫 기록입니다.\n",
+    "expected_sha256": null
+  }
+}

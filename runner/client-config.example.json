@@ -1,0 +1,7 @@
+{
+  "url": "https://runner.example.com",
+  "token": "AGENT_TOKEN",
+  "access_client_id": "CF_ACCESS_CLIENT_ID",
+  "access_client_secret": "CF_ACCESS_CLIENT_SECRET",
+  "dns_over_https": true
+}
